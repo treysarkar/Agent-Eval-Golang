@@ -81,3 +81,30 @@ func TestCreate(t *testing.T){
 	}
 }
 
+// Title validation testing
+
+func TestValidation(t *testing.T){
+	s:= NewServer()
+	 invalid := []string{
+        "", "{", "null", "[]", "{}",
+        `{"title":""}`, `{"title":"   "}`, `{"title":42}`,
+        `{"title":"Go","extra":true}`,
+        `{"title":"Go"} {"title":"Again"}`,
+        `{"title":"Go"} trailing`,
+        `{"title":"` + strings.Repeat("x", (1<<20)+1) + `"}`,
+    }
+
+	for i,body :=range invalid{
+		rec:=request(t,s,"POST","/todos",body)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("invalid case %d: got %d, want 400", i, rec.Code)
+		}
+	}
+
+	rec:=request(t,s,"POST","/todos",`{"title":"  Learn Go. "}`)
+	expectStatus(t, rec, http.StatusCreated)
+	todo:=readTodo(t,rec)
+	if todo.ID != 1 || todo.Title != "Learn Go." || todo.Done {
+		t.Fatalf("Unexpected todo : %+v", todo)
+	}
+}
