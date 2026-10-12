@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"string"
 	"testing"
+	"strings"
 )
 
 // A seperate wire type will check the public JSOn contract independently

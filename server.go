@@ -39,7 +39,7 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 }
 
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Not Implemented", http.StatusNotImplemented)
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (s *Server) createTodo(w http.ResponseWriter, r *http.Request) {
