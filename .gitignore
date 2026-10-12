@@ -1,0 +1,5 @@
+go-todo-lab
+*.test
+coverage.out
+.DS_Store
+jobs/
