@@ -57,3 +57,27 @@ func TestHealth(t *testing.T) {
 		t.Fatalf("health body: got %v", body)
 	}
 }
+
+// Test for create-todo
+
+func TestCreate(t *testing.T){
+	s:=NewServer()
+	for i, title := range []string{"Learn Go", "Write a test"}{
+		body, err:=json.Marshal(map[string]string{"title": title})
+		if err !=nil{
+			t.Fatal(err)
+		}
+		rec:=request(t,s,"POST","/todos", string(body))
+		expectStatus(t,rec,http.StatusCreated)
+		if rec.Header().Get("Content-Type") != "application/json" {
+			t.Fatal("create response must be JSON")
+		}
+
+		todo:=readTodo(t,rec)
+		if todo.ID !=i+1 || todo.Title !=title || todo.Done{
+			t.Fatalf("Unexpected todo : %+v", todo)
+		}
+
+	}
+}
+
