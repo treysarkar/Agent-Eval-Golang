@@ -43,7 +43,26 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) createTodo(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "not implemented", http.StatusNotImplemented)
+	var input struct{
+		Title string `json:"title"`
+	}
+
+	if err:= json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	s.mu.Lock()
+	todo := Todo{
+		ID:    s.nextID,
+		Title: input.Title,
+		Done:  false,
+	}
+	s.todos = append(s.todos, todo)
+	s.nextID++
+	s.mu.Unlock()
+
+	writeJSON(w, http.StatusCreated, todo)
 }
 
 func (s *Server) listTodos(w http.ResponseWriter, r *http.Request) {
