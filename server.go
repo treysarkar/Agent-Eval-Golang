@@ -6,6 +6,7 @@ import (
 	"sync"
 	"io"
 	"strings"
+	"strconv"
 )
 
 type Todo struct {
@@ -84,5 +85,21 @@ func (s *Server) listTodos(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) completeTodo(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "not implemented", http.StatusNotImplemented)
+    id, err := strconv.Atoi(r.PathValue("id"))
+    if err != nil || id < 1 {
+        http.Error(w, "invalid id", http.StatusBadRequest)
+        return
+    }
+    s.mu.Lock()
+    for i := range s.todos {
+        if s.todos[i].ID == id {
+            s.todos[i].Done = true
+            todo := s.todos[i]
+            s.mu.Unlock()
+            writeJSON(w, http.StatusOK, todo)
+            return
+        }
+    }
+    s.mu.Unlock()
+    http.Error(w, "todo not found", http.StatusNotFound)
 }
