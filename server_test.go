@@ -138,3 +138,35 @@ func TestList(t *testing.T) {
         t.Fatal("server instances must not share state")
     }
 }
+
+// Test for Mark a todo
+
+func TestComplete(t *testing.T) {
+    s := NewServer()
+    request(t, s, "POST", "/todos", `{"title":"Learn Go"}`)
+    for i := 0; i < 2; i++ {
+        rec := request(t, s, "PATCH", "/todos/1", "")
+        expectStatus(t, rec, http.StatusOK)
+        if rec.Header().Get("Content-Type") != "application/json" {
+            t.Fatal("completed todo must be JSON")
+        }
+        todo := readTodo(t, rec)
+        if !todo.Done || todo.ID != 1 || todo.Title != "Learn Go" {
+            t.Fatalf("unexpected completed todo: %+v", todo)
+        }
+    }
+    listed := request(t, s, "GET", "/todos", "")
+    var todos []wireTodo
+    if err := json.Unmarshal(listed.Body.Bytes(), &todos); err != nil {
+        t.Fatal(err)
+    }
+    if len(todos) != 1 || !todos[0].Done {
+        t.Fatalf("completion was not stored: %+v", todos)
+    }
+    expectStatus(t, request(t, s, "PATCH", "/todos/999", ""), http.StatusNotFound)
+    for _, id := range []string{"abc", "0", "-1"} {
+        expectStatus(t, request(t, s, "PATCH", "/todos/"+id, ""), http.StatusBadRequest)
+    }
+    expectStatus(t, request(t, s, "DELETE", "/todos", ""), http.StatusMethodNotAllowed)
+    expectStatus(t, request(t, s, "GET", "/missing", ""), http.StatusNotFound)
+}
