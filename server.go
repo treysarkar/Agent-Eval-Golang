@@ -76,7 +76,11 @@ func (s *Server) createTodo(w http.ResponseWriter, r *http.Request) {
 
 
 func (s *Server) listTodos(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "not implemented", http.StatusNotImplemented)
+	s.mu.Lock()
+    todos := make([]Todo, len(s.todos))
+    copy(todos, s.todos)
+    s.mu.Unlock()
+    writeJSON(w, http.StatusOK, todos)
 }
 
 func (s *Server) completeTodo(w http.ResponseWriter, r *http.Request) {
