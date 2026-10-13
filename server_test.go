@@ -108,3 +108,33 @@ func TestValidation(t *testing.T){
 		t.Fatalf("Unexpected todo : %+v", todo)
 	}
 }
+
+// Test for list to dos
+
+func TestList(t *testing.T) {
+    s := NewServer()
+    rec := request(t, s, "GET", "/todos", "")
+    expectStatus(t, rec, http.StatusOK)
+    if strings.TrimSpace(rec.Body.String()) != "[]" {
+        t.Fatalf("empty list: got %q, want []", rec.Body.String())
+    }
+    request(t, s, "POST", "/todos", `{"title":"First"}`)
+    request(t, s, "POST", "/todos", `{"title":"Second"}`)
+    rec = request(t, s, "GET", "/todos", "")
+    expectStatus(t, rec, http.StatusOK)
+    if rec.Header().Get("Content-Type") != "application/json" {
+        t.Fatal("list must be JSON")
+    }
+    var todos []wireTodo
+    if err := json.Unmarshal(rec.Body.Bytes(), &todos); err != nil {
+        t.Fatal(err)
+    }
+    if len(todos) != 2 || todos[0].Title != "First" || todos[1].Title != "Second" ||
+        todos[0].ID != 1 || todos[1].ID != 2 || todos[0].Done || todos[1].Done {
+        t.Fatalf("unexpected list: %+v", todos)
+    }
+    fresh := request(t, NewServer(), "GET", "/todos", "")
+    if strings.TrimSpace(fresh.Body.String()) != "[]" {
+        t.Fatal("server instances must not share state")
+    }
+}
