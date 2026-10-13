@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"sync"
+	"io"
+	"strings"
 )
 
 type Todo struct {
@@ -47,23 +49,31 @@ func (s *Server) createTodo(w http.ResponseWriter, r *http.Request) {
 		Title string `json:"title"`
 	}
 
-	if err:= json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+	r.Body = http.MaxBytesReader(w,r.Body, 1<<20)
+	decoder:= json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err:= decoder.Decode(&input); err!= nil{
+		http.Error(w,"invalid JSON",http.StatusBadRequest)
 		return
 	}
 
-	s.mu.Lock()
-	todo := Todo{
-		ID:    s.nextID,
-		Title: input.Title,
-		Done:  false,
-	}
-	s.todos = append(s.todos, todo)
-	s.nextID++
-	s.mu.Unlock()
-
-	writeJSON(w, http.StatusCreated, todo)
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+        http.Error(w, "expected one JSON object", http.StatusBadRequest)
+        return
+    }
+    input.Title = strings.TrimSpace(input.Title)
+    if input.Title == "" {
+        http.Error(w, "title is required", http.StatusBadRequest)
+        return
+    }
+    s.mu.Lock()
+    todo := Todo{ID: s.nextID, Title: input.Title, Done: false}
+    s.nextID++
+    s.todos = append(s.todos, todo)
+    s.mu.Unlock()
+    writeJSON(w, http.StatusCreated, todo)
 }
+
 
 func (s *Server) listTodos(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "not implemented", http.StatusNotImplemented)
